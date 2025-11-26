@@ -3,6 +3,10 @@ import Table from 'react-bootstrap/Table';
 import { fetchAllUsers } from '../services/UserService';
 import Spinner from 'react-bootstrap/Spinner';
 import ReactPaginate from 'react-paginate';
+import AddNewModal from './ModalAddNew';
+import ModalEditUser from './ModalUpdateUser';
+import ModalConfirm from './ModalConfirm';
+
 // {
 //     "id": 7,
 //     "email": "michael.lawson@reqres.in",
@@ -14,8 +18,22 @@ import ReactPaginate from 'react-paginate';
 const TableUsers = (props) => {
     const [users, setUsers] = useState([])
     const [isLoading, setIsLoading] = useState(false);
-    const [totalUsers, setTotalUsers] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
+    //Quản lý modal
+    const [isShowModalAddNew, setIsShowModalAddNew] = useState(false);
+    const [isShowModalEdit, setIsShowModalEdit] = useState(false)
+    const [isShowModalConfirm, setIsShowModalConfirm] = useState(false)
+    const [dataEditUser, setDataEditUser] = useState();
+    const [dataUserDelete, setDataUserDelete] = useState();
+    //End quản lý modal
+    
+    const handleClose = () => {
+        setIsShowModalAddNew(false);
+    }
+
+    const handleAddUser = (name) => {
+        setUsers([name,...users]) 
+    }
 
     useEffect(() => {
         getUsers(1)
@@ -27,7 +45,6 @@ const TableUsers = (props) => {
         if (res && res.data) {
             console.log(res)
             setUsers(res.data)
-            setTotalUsers(res.total)
             setTotalPages(res.total_pages)
             setIsLoading(false);
         }
@@ -35,16 +52,55 @@ const TableUsers = (props) => {
 
     const handlePageClick = (event) => {
         // console.log(event)
-        getUsers(+event.selected +1)
+        getUsers(+event.selected + 1)
     }
+
+    const handleEditUser = (user)=>{
+        setDataEditUser(user);
+        setIsShowModalEdit(true);
+    }
+
+    const handleDeleteUser = (user)=>{
+        setDataUserDelete(user);
+        setIsShowModalConfirm(true);
+    }
+
+    const handleEditClose = () =>{
+        setIsShowModalEdit(false);
+    }
+
+     const handleConfirmClose = () =>{
+        setIsShowModalConfirm(false);
+    }
+
+    const updateTableWhenUpdateUser = (user) =>{
+        let cloneUsers = [...users];
+        let index = cloneUsers.findIndex(item => item.id === dataEditUser.id)
+        cloneUsers[index].first_name = user.first_name;
+        setUsers(cloneUsers);
+        console.log(">>Check Clone: ",cloneUsers);
+    }
+
+    const updateTableWhenDeleteUser = () =>{
+        let cloneUsers = [...users];
+        cloneUsers = cloneUsers.filter(item => item.id !== dataUserDelete.id)
+        setUsers(cloneUsers);
+        console.log(">>Check Clone: ",cloneUsers);
+    }
+
     return (<>
-        <Table striped bordered hover className="mt-3">
+        <div className='d-flex justify-content-between mt-3'>
+            <span><b>List Users: </b></span>
+            <button className='btn btn-success' onClick={() => { setIsShowModalAddNew(true) }}>Add new user</button>
+        </div>
+        <Table striped bordered hover >
             <thead>
                 <tr>
                     <th>#</th>
                     <th>Email</th>
                     <th>First Name</th>
                     <th>Last Name</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -56,6 +112,10 @@ const TableUsers = (props) => {
                             <td>{item.email}</td>
                             <td>{item.first_name}</td>
                             <td>{item.last_name}</td>
+                            <td>
+                                <button className="btn btn-warning mx-3" onClick={()=>handleEditUser(item)}>Edit</button>
+                                <button className='btn btn-danger' onClick={()=>handleDeleteUser(item)}>Delete</button>   
+                            </td>
                         </tr>
                     )
                 })
@@ -81,6 +141,9 @@ const TableUsers = (props) => {
             containerClassName="pagination"
             activeClassName="active"
         />
+        <AddNewModal handleAddUser={handleAddUser} show={isShowModalAddNew} handleClose={handleClose} />
+        <ModalEditUser show={isShowModalEdit} dataEditUser={dataEditUser} handleClose={handleEditClose} updateTableWhenUpdateUser={updateTableWhenUpdateUser}/>
+        <ModalConfirm show={isShowModalConfirm} dataUserDelete={dataUserDelete} handleClose={handleConfirmClose} updateTableWhenDeleteUser={updateTableWhenDeleteUser}/>
     </>)
 }
 
