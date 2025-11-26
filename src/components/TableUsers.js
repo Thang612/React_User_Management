@@ -6,7 +6,8 @@ import ReactPaginate from 'react-paginate';
 import AddNewModal from './ModalAddNew';
 import ModalEditUser from './ModalUpdateUser';
 import ModalConfirm from './ModalConfirm';
-import _ from 'lodash';
+import _, { debounce } from 'lodash';
+import { Col, Form, Row } from 'react-bootstrap';
 
 // {
 //     "id": 7,
@@ -20,6 +21,7 @@ const TableUsers = (props) => {
     const [users, setUsers] = useState([])
     const [isLoading, setIsLoading] = useState(false);
     const [totalPages, setTotalPages] = useState(0);
+    const [pageCurrent, setPageCurrent] = useState(1);
     //Quản lý modal
     const [isShowModalAddNew, setIsShowModalAddNew] = useState(false);
     const [isShowModalEdit, setIsShowModalEdit] = useState(false)
@@ -28,7 +30,7 @@ const TableUsers = (props) => {
     const [dataUserDelete, setDataUserDelete] = useState();
     //End quản lý modal
 
-  
+
 
     const handleClose = () => {
         setIsShowModalAddNew(false);
@@ -39,13 +41,13 @@ const TableUsers = (props) => {
     }
 
     useEffect(() => {
-        getUsers(1)
-    }, [])
+        getUsers(pageCurrent)
+    }, [pageCurrent])
 
-      //Quản lý sort
-    const handleSort=( sortBy, sortField )=>{
+    //Quản lý sort
+    const handleSort = (sortBy, sortField) => {
         let cloneUsers = _.cloneDeep(users);
-        console.log(typeof(sortBy),typeof(sortField) )
+        console.log(typeof (sortBy), typeof (sortField))
         cloneUsers = _.orderBy(cloneUsers, [sortField], [sortBy]);
         console.log(cloneUsers);
         setUsers(cloneUsers);
@@ -65,7 +67,7 @@ const TableUsers = (props) => {
 
     const handlePageClick = (event) => {
         // console.log(event)
-        getUsers(+event.selected + 1)
+        setPageCurrent(+event.selected + 1)
     }
 
     const handleEditUser = (user) => {
@@ -101,10 +103,34 @@ const TableUsers = (props) => {
         console.log(">>Check Clone: ", cloneUsers);
     }
 
+    const handleSearch = debounce((event)=>{
+        let term = event.target.value;
+        
+        if (term){
+            let cloneUsers = _.cloneDeep(users);
+            cloneUsers = cloneUsers.filter(item => item.email.includes(term))
+            setUsers(cloneUsers);
+        }else{
+            getUsers(pageCurrent);
+        }
+    }, 1000)
+
     return (<>
         <div className='d-flex justify-content-between mt-3'>
             <span><b>List Users: </b></span>
             <button className='btn btn-success' onClick={() => { setIsShowModalAddNew(true) }}>Add new user</button>
+        </div>
+        <div className="col-6 my-3">
+            <Form>
+                <Form.Group as={Row} className="mb-3" controlId="formPlaintextName">
+                    <Form.Label column sm="2">
+                        Search
+                    </Form.Label>
+                    <Col sm="10">
+                        <Form.Control type="text" placeholder="Name"  onChange={(e) => handleSearch(e)} />
+                    </Col>
+                </Form.Group>
+            </Form>
         </div>
         <Table striped bordered hover >
             <thead>
@@ -113,8 +139,8 @@ const TableUsers = (props) => {
                         <div className="sort__header">
                             <span>ID</span>
                             <span>
-                                <i className="fa-solid fa-arrow-up-long" onClick={()=>{handleSort('asc', 'id')}}></i>
-                                <i className="fa-solid fa-arrow-down-long" onClick={()=>{handleSort('desc', 'id')}}></i>
+                                <i className="fa-solid fa-arrow-up-long" onClick={() => { handleSort('asc', 'id') }}></i>
+                                <i className="fa-solid fa-arrow-down-long" onClick={() => { handleSort('desc', 'id') }}></i>
                             </span>
                         </div>
                     </th>
@@ -123,8 +149,8 @@ const TableUsers = (props) => {
                         <div className="sort__header">
                             <span>First Name</span>
                             <span>
-                                <i className="fa-solid fa-arrow-up-long" onClick={()=>{handleSort('asc', 'first_name')}}></i>
-                                <i className="fa-solid fa-arrow-down-long" onClick={()=>{handleSort('desc', 'first_name')}}></i>
+                                <i className="fa-solid fa-arrow-up-long" onClick={() => { handleSort('asc', 'first_name') }}></i>
+                                <i className="fa-solid fa-arrow-down-long" onClick={() => { handleSort('desc', 'first_name') }}></i>
                             </span>
                         </div>
                     </th>
