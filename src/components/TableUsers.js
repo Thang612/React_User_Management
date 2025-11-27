@@ -8,6 +8,9 @@ import ModalEditUser from './ModalUpdateUser';
 import ModalConfirm from './ModalConfirm';
 import _, { debounce } from 'lodash';
 import { Col, Form, Row } from 'react-bootstrap';
+import { CSVLink } from "react-csv";
+import { toast } from 'react-toastify';
+import CSVReader from './ModalUploadCSV';
 
 // {
 //     "id": 7,
@@ -26,18 +29,27 @@ const TableUsers = (props) => {
     const [isShowModalAddNew, setIsShowModalAddNew] = useState(false);
     const [isShowModalEdit, setIsShowModalEdit] = useState(false)
     const [isShowModalConfirm, setIsShowModalConfirm] = useState(false)
+    const [isShowModalUpload, setIsShowModalUpload] = useState(false);
     const [dataEditUser, setDataEditUser] = useState();
     const [dataUserDelete, setDataUserDelete] = useState();
     //End quản lý modal
-
-
+    //Xử lý CSV
+    const [dataExport, setDataExport] = useState([]);
+    const headers = [
+        { label: "Id", key: "id" },
+        { label: "Email", key: "email" },
+        { label: "First Name", key: "first_name" },
+        { label: "Last Name", key: "last_name" },
+        { label: "Avatar", key: "avatar" }
+    ];
+    //End Xử lý CSV
 
     const handleClose = () => {
         setIsShowModalAddNew(false);
     }
 
     const handleAddUser = (name) => {
-        setUsers([name, ...users])
+        setUsers(users=>[name, ...users])
     }
 
     useEffect(() => {
@@ -66,7 +78,6 @@ const TableUsers = (props) => {
     }
 
     const handlePageClick = (event) => {
-        // console.log(event)
         setPageCurrent(+event.selected + 1)
     }
 
@@ -88,29 +99,31 @@ const TableUsers = (props) => {
         setIsShowModalConfirm(false);
     }
 
+    const handleUpdateClose = () => {
+        setIsShowModalUpload(false);
+    }
+
     const updateTableWhenUpdateUser = (user) => {
         let cloneUsers = _.cloneDeep(users);
         let index = cloneUsers.findIndex(item => item.id === dataEditUser.id)
         cloneUsers[index].first_name = user.first_name;
         setUsers(cloneUsers);
-        console.log(">>Check Clone: ", cloneUsers);
     }
 
     const updateTableWhenDeleteUser = () => {
         let cloneUsers = _.cloneDeep(users);
         cloneUsers = cloneUsers.filter(item => item.id !== dataUserDelete.id)
         setUsers(cloneUsers);
-        console.log(">>Check Clone: ", cloneUsers);
     }
 
-    const handleSearch = debounce((event)=>{
+    const handleSearch = debounce((event) => {
         let term = event.target.value;
-        
-        if (term){
+
+        if (term) {
             let cloneUsers = _.cloneDeep(users);
             cloneUsers = cloneUsers.filter(item => item.email.includes(term))
             setUsers(cloneUsers);
-        }else{
+        } else {
             getUsers(pageCurrent);
         }
     }, 1000)
@@ -118,7 +131,29 @@ const TableUsers = (props) => {
     return (<>
         <div className='d-flex justify-content-between mt-3'>
             <span><b>List Users: </b></span>
-            <button className='btn btn-success' onClick={() => { setIsShowModalAddNew(true) }}>Add new user</button>
+            <div className='d-flex gap-3'>
+                <button className='btn btn-warning' onClick={()=>{setIsShowModalUpload(true)}}>Import <i class="fa-solid fa-upload"></i></button>
+                <CSVLink
+                    headers={headers}
+                    data={dataExport}
+                    asyncOnClick={true}
+                    onClick={async (event, done) => {
+                        const res = await fetchAllUsers(pageCurrent);
+                        if (res && res.data) {
+                            setDataExport(res.data);
+                            toast.success("Export CSV success!!!");
+                            done(true);   // ⬅ đảm bảo gọi sau khi fetch xong
+                        } else {
+                            toast.error("Error export");
+                            done(false);  // báo lỗi
+                        }
+                    }}
+                    className="btn btn-primary"
+                >
+                    Download <i class="fa-solid fa-download"></i>
+                </CSVLink>
+                <button className='btn btn-success' onClick={() => { setIsShowModalAddNew(true) }}>Add new user</button>
+            </div>
         </div>
         <div className="col-6 my-3">
             <Form>
@@ -127,7 +162,7 @@ const TableUsers = (props) => {
                         Search
                     </Form.Label>
                     <Col sm="10">
-                        <Form.Control type="text" placeholder="Name"  onChange={(e) => handleSearch(e)} />
+                        <Form.Control type="text" placeholder="Name" onChange={(e) => handleSearch(e)} />
                     </Col>
                 </Form.Group>
             </Form>
@@ -199,6 +234,7 @@ const TableUsers = (props) => {
         <AddNewModal handleAddUser={handleAddUser} show={isShowModalAddNew} handleClose={handleClose} />
         <ModalEditUser show={isShowModalEdit} dataEditUser={dataEditUser} handleClose={handleEditClose} updateTableWhenUpdateUser={updateTableWhenUpdateUser} />
         <ModalConfirm show={isShowModalConfirm} dataUserDelete={dataUserDelete} handleClose={handleConfirmClose} updateTableWhenDeleteUser={updateTableWhenDeleteUser} />
+        <CSVReader show={isShowModalUpload} handleClose={handleUpdateClose}  handleAddUser={handleAddUser}/>
     </>)
 }
 
